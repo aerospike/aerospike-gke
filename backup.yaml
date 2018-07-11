@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aerospike-backup
+spec:
+  completions: 1
+  template:
+    metadata:
+      name: aerospike-backup
+    spec:
+      containers:
+      - command:
+        - '/bin/sh'
+        - '-c'
+        - "asbackup -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
+        image: aerospike/aerospike-tools:latest
+        imagePullPolicy: always
+        name: backup
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: backup-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+#  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: $BACKUP_SIZE
+

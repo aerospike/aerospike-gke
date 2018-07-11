@@ -1,0 +1,70 @@
+---
+apiVersion: app.k8s.io/v1alpha1
+kind: Application
+metadata:
+  name: "$APP_INSTANCE_NAME"
+  namespace: "$NAMESPACE"
+  annotations:
+    kubernetes-engine.cloud.google.com/icon: >-
+      data:image/png;base64,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
+    marketplace.cloud.google.com/deploy-info: '{partner_id: "aerospike-prod", product_id: "aerospike-server-enterprise", partner_name: "Aerospike"}'
+  labels:
+    app.kubernetes.io/name: "$APP_INSTANCE_NAME"
+spec:
+  type: Aerospike
+  version: '0.1'
+  description: |-
+    A flash optimized, high performance, NoSQL database
+    # Support
+    Community Support is available on
+    [community forums](https://discuss.aerospike.com/) 
+
+
+    Enterprise Support is available at
+    [Aerospike Support](https://support.aerospike.com/)
+  maintainers:
+  - name: Aerospike
+    url: https://aerospike.com
+  links:
+  - description: Getting Started
+    url: https://www.aerospike.com/docs/
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "$APP_INSTANCE_NAME"
+  componentKinds:
+  - group: apps/v1beta1
+    kind: StatefulSet
+  - group: v1
+    kind: ServiceAccount
+  - group: rbac.authorization.k8s.io/v1
+    kind: Role
+  - group: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+  - group: v1
+    kind: PersistentVolumeClaim
+  - group: v1
+    kind: Service
+  - group: batch/v1
+    kind: Job
+  notes: |-
+    # Access Aerospike
+    Aerospike is not exposed over the external IP. Access is limited to clients within the same kubernetes namespace.
+    
+    To access Aerospike, you can use the service name `${APP_INSTANCE_NAME}-aerospike-svc` as the hostname for Aerospike's Smart Clients.
+
+    # Required:
+    Aerospike is deployed with Strong Consistency enabled.
+
+    Before Strong Consistency is usable, you'd need to execute the following commands:
+
+    `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
+
+    The following commands occur within asadm prompt from above:
+
+    `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`
+     eg: `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=1,2,3'`
+
+    `asinfo -v 'recluster:'`
+
+    # Backup/Restore
+    Please see the additional Job manifests for backups and restores on our public [Github](#TODO)

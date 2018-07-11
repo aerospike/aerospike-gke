@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aerospike-restore
+spec:
+  completions: 1
+  template:
+    metadata:
+      name: aerospike-restore
+    spec:
+      containers:
+      - command:
+        - '/bin/sh'
+        - '-c'
+        - "asrestore -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
+        image: aerospike/aerospike-tools:latest
+        imagePullPolicy: always
+        name: backup
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+      restartPolicy: Never
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: $BACKUP_CLAIM
