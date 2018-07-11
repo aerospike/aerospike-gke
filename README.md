@@ -2,6 +2,13 @@
 
 Aerospike is a high performance, flash optimized NoSQL database.
 
+This repo contains the kubectl templates needed to deploy Aerospike EE with Strong Consistency
+on GKE. Billing is based in **provisioned** ram/disk. Prices are available at [TODO]().
+
+The storage engine provided is in-memory with persistence to disk. As such, the capcity requirements
+for memory and disk are similar. In this regards, the same value is used to provision both. See 
+`schema.yaml` for the list of parameters.
+
 # Installation
 
 ## Quick install with Google Cloud Marketplace
