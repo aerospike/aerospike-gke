@@ -97,9 +97,6 @@ spec:
         volumeMounts:
         - name: confdir
           mountPath: /etc/aerospike
-#        - name: license
-#          mountPath: "/opt/aerospike/license"
-#          readOnly: true
         - name: datadir
           mountPath: /opt/aerospike/data
         resources:
@@ -132,8 +129,6 @@ spec:
           value: "$AEROSPIKE_MEM"
         - name: DEFAULT_TTL
           value: "$AEROSPIKE_TTL"
-#        - name: STORAGE_GB
-#          value: "$AEROSPIKE_STORAGE"
         - name: AGENT_LOCAL_PORT
           value: "6080"
       - image: $IMAGE_UBBAGENT
@@ -187,10 +182,6 @@ spec:
         emptyDir: {}
       - name: ubbagent-state
         emptyDir: {}
-#      - name: license
-#        secret:
-#          secretName: aerospikeLicense
-#          optional: true
   volumeClaimTemplates:
   - metadata:
       name: datadir
