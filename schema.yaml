@@ -63,11 +63,12 @@ properties:
 #    type: integer
 #    default: 100
 #    minimum: 10
-  AEROSPIKE_PERSIST:
-    title: Persist Aerospike
-    description: Persist your namespace's data to persistent volume claims
-    type: boolean
-    default: true
+# redundant
+#  AEROSPIKE_PERSIST:
+#    title: Persist Aerospike
+#    description: Persist your namespace's data to persistent volume claims
+#    type: boolean
+#    default: true
 required:
 -   APP_INSTANCE_NAME
 -   NAMESPACE

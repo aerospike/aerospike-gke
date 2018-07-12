@@ -169,8 +169,6 @@ spec:
         env:
         - name: SERVICE
           value: $APP_INSTANCE_NAME-aerospike-svc
-        - name: PERSIST
-          value: "$AEROSPIKE_PERSIST"
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
@@ -185,6 +183,7 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: datadir
+      labels: *AerospikeDeploymentLabels
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
