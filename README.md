@@ -206,13 +206,12 @@ Updates and upgrades that do not change cluster size do not need the roster to b
 
 Deletion of the application will remove all pods, service, and jobs. However your persisted data will still exist on the Persistent Volumes created.
 
-Remove the Aerospike the UI or with the following:
+Remove the Aerospike application in the UI or with the following:
 
 ```
 kubectl delete application ${APP_INSTANCE_NAME}
 ```
-
-You will need to manually remove the persisted volumes, either through the UI or with the following:
+To clean up data, you will need to manually remove the persisted volumes. Either do this through the UI or with the following:
 
 ```
 kubectl delete pvc -l app.kubernetes.io/name=${APP_INSTANCE_NAME}
