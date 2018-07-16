@@ -3,7 +3,8 @@
 Aerospike is a high performance, flash optimized NoSQL database.
 
 This repo contains the kubectl templates needed to deploy Aerospike EE with Strong Consistency
-on GKE. Billing is based in **provisioned** ram/disk. Pricing is available at [TODO]().
+on GKE. Billing is based on **provisioned** ram/disk. Pricing is available on our 
+[Marlekplace listing](https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-server-enterprise).
 
 The storage engine provided is in-memory with persistence to disk. As such, the capcity requirements
 for memory and disk are similar. In this regards, the same value is used to provision both. See 
@@ -25,6 +26,8 @@ Follow these instructions to install Aerospike from the command line.
 
 ## Important:
 
+**Cluster Roster**
+
 Aerospike is deployed with Strong Consistency enabled. You will need to issue the 
 following commands to set the roster before the cluster is usable.
 Subsequent "asinfo" commands occur within asadm prompt from the first line.
@@ -37,12 +40,20 @@ Subsequent "asinfo" commands occur within asadm prompt from the first line.
 
 3. `asinfo -v 'recluster:'`
 
+**Authentication**
+
+Aerospike is deployed with default credentials of `admin/admin'. Aerospike highly recommends you change 
+the password before entering production by using the following command:  
+`kubectl exec ${APP_INSTANCE_NAME} aql -- -c "set password ${NEWPASSWORD} for admin"`
+
+
 
 ### Prerequisites
 
 **Setup cluster**
 
-You should already have a kubernetes cluster provisioned. If you do not have a cluster, please follow [these instructions](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) to setting up a GKE cluster. 
+You should already have a kubernetes cluster provisioned. If you do not have a cluster, please follow 
+[these instructions](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) on setting up a GKE cluster. 
 
 Alternatively, you can use the following CLI commands.
 
@@ -74,17 +85,21 @@ kubectl create clusterrolebinding cluster-admin-binding \
 # (Optional) Start up kubectl proxy.
 kubectl proxy
 ```
+**License Secret**
+
+You must obtain a license secret from GCP Marketplace to launch this application.
+You can obtain the license from the listing page: https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-server-enterprise.
+
+[TODO](#HowDoUsersGetALicense)
+
+The license secret is a Kubernetes Secret. Keep the name of this secret handy for the following section.
 
 **Install Application Resource**
-
 
 *TODO: add details above*
 
 ### Commands
 
-You must obtain a license secret from Cloud Launcher to be entitled to this application.
-
-The license secrete is a Kubernetes Secret. Keep the name of this secret handy for the following section.
 
 Set environment variables (modify if necessary):
 ```

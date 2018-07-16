@@ -1,5 +1,5 @@
 ---
-apiVersion: app.k8s.io/v1alpha1
+apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
   name: "$APP_INSTANCE_NAME"
@@ -11,23 +11,49 @@ metadata:
   labels:
     app.kubernetes.io/name: "$APP_INSTANCE_NAME"
 spec:
-  type: Aerospike
-  version: '0.1'
-  description: |-
-    A flash optimized, high performance, NoSQL database
-    # Support
-    Community Support is available on
-    [community forums](https://discuss.aerospike.com/) 
+  descriptor:
+    type: Aerospike
+    version: '0.1'
+    description: |-
+      A flash optimized, high performance, NoSQL database
+      # Support
+      Community Support is available on
+      [community forums](https://discuss.aerospike.com/) 
+  
+  
+      Enterprise Support is available at
+      [Aerospike Support](https://support.aerospike.com/)
+    maintainers:
+    - name: Aerospike
+      url: https://aerospike.com
+    links:
+    - description: Getting Started
+      url: https://github.com/aerospike/aerospike-gke/blob/master/README.md
+    notes: |-
+      # Access Aerospike
+      Aerospike is not exposed over the external IP. Access is limited to clients within the same kubernetes namespace.
+      
+      To access Aerospike, you can use the service name `${APP_INSTANCE_NAME}-aerospike-svc` as the hostname for Aerospike's Smart Clients.
 
+	  Default credentials are `admin/admin`. Aerospike highly recommends you change the password before entering production by using the following command:
+	  `kubectl exec ${APP_INSTANCE_NAME} aql -- -c "set password ${NEWPASSWORD} for admin"`
+	  
+	  Read more about configuring access control [here](https://www.aerospike.com/docs/operations/configure/security/access-control/index.html).
 
-    Enterprise Support is available at
-    [Aerospike Support](https://support.aerospike.com/)
-  maintainers:
-  - name: Aerospike
-    url: https://aerospike.com
-  links:
-  - description: Getting Started
-    url: https://www.aerospike.com/docs/
+      # Required:
+      Aerospike is deployed with Strong Consistency enabled. You will need to issue the following commands to set the roster before the cluster is usable.
+      Subsequent "asinfo" commands occur within asadm prompt from the first line.
+
+      1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm -- -U admin -P ${NEWPASSWORD}`
+
+      2. `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
+      eg:  
+      `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=1,2,3'`
+
+      3. `asinfo -v 'recluster:'`
+
+      # Backup/Restore/Updates
+      Please see the additional Job manifests for backups, restores, and other operations on our public [Github](https://github.com/aerospike/aerospike-gke)
   selector:
     matchLabels:
       app.kubernetes.io/name: "$APP_INSTANCE_NAME"
@@ -46,25 +72,3 @@ spec:
     kind: Service
   - group: batch/v1
     kind: Job
-  notes: |-
-    # Access Aerospike
-    Aerospike is not exposed over the external IP. Access is limited to clients within the same kubernetes namespace.
-    
-    To access Aerospike, you can use the service name `${APP_INSTANCE_NAME}-aerospike-svc` as the hostname for Aerospike's Smart Clients.
-
-    # Required:
-    Aerospike is deployed with Strong Consistency enabled.
-
-    Before Strong Consistency is usable, you'd need to execute the following commands:
-
-    `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
-
-    The following commands occur within asadm prompt from above:
-
-    `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`
-     eg: `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=1,2,3'`
-
-    `asinfo -v 'recluster:'`
-
-    # Backup/Restore
-    Please see the additional Job manifests for backups and restores on our public [Github](#TODO)
