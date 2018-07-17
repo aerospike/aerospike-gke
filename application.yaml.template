@@ -35,16 +35,11 @@ spec:
       
       To access Aerospike, you can use the service name `${APP_INSTANCE_NAME}-aerospike-svc` as the hostname for Aerospike's Smart Clients.
 
-	  Default credentials are `admin/admin`. Aerospike highly recommends you change the password before entering production by using the following command:
-	  `kubectl exec ${APP_INSTANCE_NAME} aql -- -c "set password ${NEWPASSWORD} for admin"`
-	  
-	  Read more about configuring access control [here](https://www.aerospike.com/docs/operations/configure/security/access-control/index.html).
-
       # Required:
       Aerospike is deployed with Strong Consistency enabled. You will need to issue the following commands to set the roster before the cluster is usable.
       Subsequent "asinfo" commands occur within asadm prompt from the first line.
 
-      1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm -- -U admin -P ${NEWPASSWORD}`
+      1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
 
       2. `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
       eg:  
@@ -54,6 +49,13 @@ spec:
 
       # Backup/Restore/Updates
       Please see the additional Job manifests for backups, restores, and other operations on our public [Github](https://github.com/aerospike/aerospike-gke)
+  info:
+  - name: Aerospike Service Endpoint
+    value: $APP_INSTANCE_NAME-aerospike-svc
+  - name: Aerospike Namespace
+    value: $AEROSPIKE_NAMESPACE
+  - name: Provisioned Resources
+    value: "$AEROSPIKE_NODES x $AEROSPIKE_MEM Gi"
   selector:
     matchLabels:
       app.kubernetes.io/name: "$APP_INSTANCE_NAME"

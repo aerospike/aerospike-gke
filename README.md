@@ -40,13 +40,6 @@ Subsequent "asinfo" commands occur within asadm prompt from the first line.
 
 3. `asinfo -v 'recluster:'`
 
-**Authentication**
-
-Aerospike is deployed with default credentials of `admin/admin'. Aerospike highly recommends you change 
-the password before entering production by using the following command:  
-`kubectl exec ${APP_INSTANCE_NAME} aql -- -c "set password ${NEWPASSWORD} for admin"`
-
-
 
 ### Prerequisites
 
