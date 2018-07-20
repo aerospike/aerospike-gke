@@ -118,9 +118,9 @@ export AEROSPIKE_TTL=0
 ```
 All `AEROSPIKE_*` parameters except AEROSPIKE\_NODES are optional. Default values are listed above.
 
-**Deploy**
-
 All other parameters are required.
+
+**Deploy**
 
 Expand manifest template:
 ```
@@ -131,6 +131,13 @@ Run kubectl:
 ```
 kubectl apply -f expanded.yaml --namespace ${NAMESPACE}
 ```
+
+# Access and Usage
+
+Aerospike is not designed to be publically accessible. Even if you switched the Kubernetes service definition to
+load balancer mode, clients will still be unable to connect.
+
+For clients in the same Kubernetes namespace, access Aerospike via its service name: `${APP_INSTANCE_NAME}-aerospike-svc`.
 
 
 # Backups
