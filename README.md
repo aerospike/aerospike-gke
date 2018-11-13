@@ -33,9 +33,9 @@ Subsequent "asinfo" commands occur within the "asadm" prompt from the first line
 
 1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
 
-2. `asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
+2. `asinfo -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
  eg:  
-`asinfo -v 'roster-set:namespace:test;nodes=1,2,3'`
+`asinfo -v 'roster-set:namespace=test;nodes=1,2,3'`
 
 3. `asinfo -v 'recluster:'`
 
