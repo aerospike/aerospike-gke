@@ -212,7 +212,7 @@ After scaling, you will need to reset your roster:
 ```
 kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm
 
-asinfo -v 'roster-set:namespace:${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'
+asinfo -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'
 
 asinfo -v 'recluster:'
 ```
