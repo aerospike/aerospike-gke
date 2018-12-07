@@ -35,6 +35,11 @@ spec:
       
       To access Aerospike, you can use the service name `${APP_INSTANCE_NAME}-aerospike-svc` as the hostname for Aerospike's Smart Clients.
 
+      Access control is enabled. You will need to configure access control using the `admin` user and the generated password. The visible password
+      is base64 encoded. Decode via: `echo $B64_PASSWORD | base64 -d`
+
+      Read more about configuring access control [here](https://www.aerospike.com/docs/operations/configure/security/access-control/index.html).
+
       # Required:
       Aerospike is deployed with Strong Consistency enabled. You will need to issue the following commands to set the roster before the cluster is usable.
       Subsequent "asinfo" commands occur within asadm prompt from the first line.
@@ -56,6 +61,10 @@ spec:
     value: $AEROSPIKE_NAMESPACE
   - name: Provisioned Resources
     value: "$AEROSPIKE_NODES x $AEROSPIKE_MEM Gi"
+  - name: Aerospike Admin Account
+    value: admin
+  - name: Aerospike Admin Password
+    value: $AEROSPIKE_PASS
   selector:
     matchLabels:
       app.kubernetes.io/name: "$APP_INSTANCE_NAME"

@@ -71,7 +71,7 @@ spec:
               command: 
               - /bin/sh
               - -c
-              - "while true; do finished=0; for part in $( asadm --no-config-file -e 'asinfo -v statistics -l' | grep migrate_par | cut -d= -f2); do if [ $part != 0 ]; then break; fi; finished=1; done; if [ $finished != 1 ]; then sleep 15; else exit 0; fi; done"
+              - "while true; do finished=0; for part in $( asadm -U podhealthcheck -P \"\" --no-config-file -e 'asinfo -v statistics -l' | grep migrate_par | cut -d= -f2); do if [ $part != 0 ]; then break; fi; finished=1; done; if [ $finished != 1 ]; then sleep 15; else exit 0; fi; done"
         ports:
         - containerPort: 3000
           name: aero-clients
@@ -84,7 +84,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - "asinfo -v build"
+            - "asinfo -U podhealthcheck -P \"\" -v status"
           initialDelaySeconds: 30
           periodSeconds: 60
         readinessProbe:
@@ -121,6 +121,11 @@ spec:
             secretKeyRef:
               name: $REPORTING_SECRET
               key: entitlement-id
+        - name: AEROSPIKE_PASS
+          valueFrom:
+            secretKeyRef:
+              name: ${APP_INSTANCE_NAME}-db-secret
+              key: password
         - name: NAMESPACE
           value: $AEROSPIKE_NAMESPACE
         - name: REPL_FACTOR
@@ -189,3 +194,16 @@ spec:
       resources:
         requests:
           storage: ${AEROSPIKE_MEM}Gi
+      storageClassName: ${SC}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $APP_INSTANCE_NAME-db-secret
+  labels:
+    app.kubernetes.io/name: "$APP_INSTANCE_NAME"
+    app.kubernetes.io/component: db-secret
+type: Opaque
+data:
+  password: "$AEROSPIKE_PASS"
+---

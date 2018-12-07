@@ -12,7 +12,7 @@ spec:
       - command:
         - '/bin/sh'
         - '-c'
-        - "asbackup -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
+        - "asbackup -U $ADMIN -P $PASS -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
         image: aerospike/aerospike-tools:latest
         imagePullPolicy: always
         name: backup

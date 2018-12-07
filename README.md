@@ -33,11 +33,17 @@ Subsequent "asinfo" commands occur within the "asadm" prompt from the first line
 
 1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
 
+<<<<<<< Updated upstream
 2. `asinfo -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
  eg:  
 `asinfo -v 'roster-set:namespace=test;nodes=1,2,3'`
+=======
+2. `asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
+ eg:  
+`asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=test;nodes=1,2,3'`
+>>>>>>> Stashed changes
 
-3. `asinfo -v 'recluster:'`
+3. `asinfo -U admin -P ${AEROSPIKE_PASS} -v 'recluster:'`
 
 
 ### Prerequisites
@@ -82,14 +88,14 @@ kubectl proxy
 You must obtain a license secret from GCP Marketplace to launch this application.
 You can obtain the license from the listing page: https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-server-enterprise.
 
-[TODO](#HowDoUsersGetALicense)
 
 The license secret is a Kubernetes Secret. Keep the name of this secret handy for the following section.
 
 **Install Application Resource**
 
 Obtain the Custom Application Resource from Google's official marketplace tools repo:
-https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/tree/master/crd
+
+https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/tree/v0.6.1/crd
 
 Apply the CRD:
 ```
@@ -120,6 +126,19 @@ All `AEROSPIKE_*` parameters except AEROSPIKE\_NODES are optional. Default value
 
 All other parameters are required.
 
+The images above are referenced by [tag](https://docs.docker.com/engine/reference/commandline/tag).
+We recommend that you pin each image to an immutable [content digest](https://docs.docker.com/registry/spec/api/#content-digests).
+This ensures that the installed application always uses the same images, until you are ready to upgrade.
+To get the digest for the image, use the following script:
+
+```
+for i in "IMAGE_AEROSPIKE" "IMAGE_INIT" "IMAGE_UBBAGENT"; do
+  repo=$(echo ${!i} | cut -d: -f1);
+  digest=$(docker pull ${!i} | sed -n -e 's/Digest: //p');
+  export $i="$repo@$digest";
+  env | grep $i;
+done
+```
 **Deploy**
 
 Expand manifest template:
@@ -139,12 +158,27 @@ load balancer mode, clients will still be unable to connect.
 
 For clients in the same Kubernetes namespace, access Aerospike via its service name: `${APP_INSTANCE_NAME}-aerospike-svc`.
 
+Access control is enabled. The default user is `admin`. The default password is automatically generated. You can see the base64
+encoded password in the application details page. You'd need to decode this value before using it in your client configurations.
+
+eg: `echo $B64_PASSWORD | base64 -d`
+
+You can deploy the following to obtain a client shell in the same environment:
+
+```
+kubectl run -i -t myShell --image=python -- bash
+pip install aerospike
+python
+>>> import aerospike
+...
+```
+
 
 # Backups
 
 Determine the size of your potential backup. Run an estimate by:
 
-`kubectl exec aerospike-1-aerospike-0 asbackup -- --namespace test --estimate`
+`kubectl exec aerospike-1-aerospike-0 asbackup -U admin -P ${AEROSPIKE_PASS} -- --namespace test --estimate`
 
 Where `aerospike-1-aerospike-0` is any deployed pod and `test` is the Aerospike Namespace you've configured.
 
@@ -156,6 +190,8 @@ Set environment variables (modify if necessary)
 export AEROSPIKE_SEED_NODE=aerospike-1-aerospike-0
 export AEROSPIKE_NAMESPACE=test
 export BACKUP_SIZE=4Gi
+export ADMIN=admin
+export PASS=...
 ```
 
 Expand the manifest:
@@ -181,6 +217,8 @@ Set environment variables (modify if necessary)
 export AEROSPIKE_SEED_NODE=aerospike-1-aerospike-0
 export AEROSPIKE_NAMESPACE=test
 export BACKUP_CLAIM=backup-claim
+export ADMIN=admin
+export PASS=...
 ```
 
 Expand the manifest:
@@ -212,9 +250,9 @@ After scaling, you will need to reset your roster:
 ```
 kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm
 
-asinfo -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'
+asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'
 
-asinfo -v 'recluster:'
+asinfo -U admin -P ${AEROSPIKE_PASS} -v 'recluster:'
 ```
 
 # Upgrades/Updates
