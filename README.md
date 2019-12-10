@@ -129,8 +129,9 @@ https://console.cloud.google.com/kubernetes/application
 
 ### Check the status of the Aerospike cluster
 
+```shell
 kubectl exec aerospike-test-aerospike-enterprise-0 --namespace test-ns -c aerospike -- asadm -e "asinfo -v 'cluster-stable:ignore-migrations=true;size=3;namespace=test'"
-
+```
 
 ### Connecting to the Aerospike cluster (External access)
 
@@ -167,10 +168,12 @@ Based on the above output, we need to provision a volume that is at least 20% la
 
 Set the following environment variables,
 
+```shell
 export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike
 export AEROSPIKE_NAMESPACE=test
 export AEROSPIKE_SET=testset
 export BACKUP_SIZE=4Gi
+```
 
 Expand the `backup.yaml` manifest:
 
