@@ -225,7 +225,7 @@ To update the Aerospike image,
 kubectl patch statefulset aerospike-test-aerospike-enterprise  --namespace test-ns --type='json' --patch="[{ \
       \"op\": \"replace\", \
       \"path\": \"/spec/template/spec/containers/0/image\", \
-      \"value\": \"gcr.io/aerospike-dev/aerospike-enterprise-byol:latest\" \
+      \"value\": \"marketplace.gcr.io/aerospike-prod/aerospike-enterprise-gke-byol:latest\" \
     }]"
 ```
 
