@@ -2,12 +2,11 @@
 
 Aerospike is a high performance, flash optimized NoSQL database.
 
-This repo contains the kubectl templates needed to deploy Aerospike EE with Strong Consistency
-on GKE. Billing is based on **provisioned** ram/disk. Pricing is available on our 
-[Marketplace listing](https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-server-enterprise).
+This repo contains aerospike-enterprise helm chart, Job manifests for aerospike tools `asbackup`, `asrestore` and `asbenchmark` and command line instructions to deploy Aerospike K8s application on GKE.
 
-The storage engine provided is in-memory with persistence to disk. As such, the capcity requirements
-for memory and disk are similar. In this regards, the same value is used to provision both.
+## Architecture
+
+![Architecture diagram](resources/aerospike-gke-architecture.png)
 
 # Installation
 
@@ -17,297 +16,238 @@ Get up and running with a few clicks! Install this Aerospike DB to a
 Google Kubernetes Engine cluster using Google Cloud Marketplace. Follow the
 on-screen instructions:
 
-https://console.cloud.google.com/launcher/kubernetes/config/aerospike-prod/aerospike-server-enterprise
+https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-enterprise-gke-byol
 
 ## Command line instructions
 
 Follow these instructions to install Aerospike from the command line.
 
-## Important:
-
-**Cluster Roster**
-
-Aerospike is deployed with Strong Consistency enabled. You will need to issue the 
-following commands to set the roster before the cluster is usable.
-Subsequent "asinfo" commands occur within the "asadm" prompt from the first line.
-
-1. `kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm`
-
-<<<<<<< Updated upstream
-2. `asinfo -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
- eg:  
-`asinfo -v 'roster-set:namespace=test;nodes=1,2,3'`
-=======
-2. `asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'`  
- eg:  
-`asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=test;nodes=1,2,3'`
->>>>>>> Stashed changes
-
-3. `asinfo -U admin -P ${AEROSPIKE_PASS} -v 'recluster:'`
-
-
 ### Prerequisites
 
-**Setup cluster**
+#### Set up command-line tools
 
-You should already have a kubernetes cluster provisioned. If you do not have a cluster, please follow 
-[these instructions](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) on setting up a GKE cluster. 
+You'll need the following tools in your development environment. If you are
+using Cloud Shell, `gcloud`, `kubectl`, Docker and Git are installed in your
+environment by default.
 
-Alternatively, you can use the following CLI commands.
+-   [gcloud](https://cloud.google.com/sdk/gcloud/)
+-   [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
+-   [docker](https://docs.docker.com/install/)
+-   [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+-   [helm](https://helm.sh/)
 
-Log in as yourself by running:
+Configure `gcloud` as a Docker credential helper:
 
+```shell
+gcloud auth configure-docker
 ```
-gcloud auth login
+
+#### Create a Google Kubernetes Engine cluster
+
+Create a new cluster from the command line:
+
+```shell
+export CLUSTER=aerospike-cluster
+export ZONE=us-west1-a
+
+gcloud container clusters create "$CLUSTER" --zone "$ZONE"
 ```
 
-Provision a GKE cluster and configure kubectl to connect to it:
-```
-CLUSTER=cluster-1
-ZONE=us-west1-a
+Configure `kubectl` to connect to the new cluster:
 
-# Create the cluster.
-gcloud beta container clusters create "$CLUSTER" \
-    --zone "$ZONE" \
-    --machine-type "n1-standard-1" \
-    --num-nodes "3"
-
-# Configure kubectl authorization.
+```shell
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
-
-# Bootstrap RBAC cluster-admin for your user.
-# More info: https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control
-kubectl create clusterrolebinding cluster-admin-binding \
-  --clusterrole cluster-admin --user $(gcloud config get-value account)
-
-# (Optional) Start up kubectl proxy.
-kubectl proxy
-```
-**License Secret**
-
-You must obtain a license secret from GCP Marketplace to launch this application.
-You can obtain the license from the listing page: https://console.cloud.google.com/marketplace/details/aerospike-prod/aerospike-server-enterprise.
-
-
-The license secret is a Kubernetes Secret. Keep the name of this secret handy for the following section.
-
-**Install Application Resource**
-
-Obtain the Custom Application Resource from Google's official marketplace tools repo:
-
-https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/tree/v0.6.1/crd
-
-Apply the CRD:
-```
-kubectl apply -f app-crd.yaml
 ```
 
-This command only needs to be ran once per cluster.
+### Install the Application
 
-### Commands
+#### Install Application CRD
 
-**Parameters**
+An Application resource is a collection of individual Kubernetes components, such as Services, Deployments, and so on, that you can manage as a group.
 
-Set environment variables (modify if necessary):
+To set up your cluster to understand Application resources, run the following command:
+
+```shell
+kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
 ```
-export APP_INSTANCE_NAME=aerospike-1
-export NAMESPACE=default
-export REPORTING_SECRET=aerospike-1-reporting-secret
-export IMAGE_AEROSPIKE=launcher.gcr.io/aerospike-prod/aerospike-server:4
-export IMAGE_INIT=launcher.gcr.io/aerospike-prod/init:4
-export IMAGE_UBBAGENT=launcher.gcr.io/google/ubbagent:4
-export AEROSPIKE_NODES=3
+
+You need to run this command once.
+
+The Application resource is defined by the
+[Kubernetes SIG-apps](https://github.com/kubernetes/community/tree/master/sig-apps)
+community. The source code can be found on
+[github.com/kubernetes-sigs/application](https://github.com/kubernetes-sigs/application).
+
+
+#### Clone this repo
+
+Clone this repo and switch to `gke-byol` branch.
+```shell
+git clone https://github.com/aerospike/aerospike-gke.git
+git checkout gke-byol
+```
+
+Navigate to the `aerospike-gke` directory:
+
+```shell
+cd aerospike-gke
+```
+
+#### Create the namespace in your Kubernetes cluster
+
+If you use a different namespace than the `default`, run the command below to
+create a new namespace:
+
+```shell
+kubectl create namespace "$NAMESPACE"
+```
+
+#### Expand the manifest template
+
+Use `helm template` to expand the template. We recommend that you save the
+expanded manifest file for future updates to the application.
+
+```shell
+helm template chart/aerospike-enterprise-4.7.0.tgz \
+  --name=aerospike-test --namespace=test-ns \
+  --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
+  --set aerospikeServerImage="marketplace.gcr.io/aerospike-prod/aerospike-enterprise-gke-byol:4.7" \
+  --set aerospikeToolsImage="marketplace.gcr.io/aerospike-prod/aerospike-enterprise-gke-byol/aerospike-tools:4.7" > expanded.yaml
+```
+
+#### Apply the manifest to your Kubernetes cluster
+
+Use `kubectl` to apply the manifest to your Kubernetes cluster:
+
+```shell
+kubectl apply -f expanded.yaml
+```
+
+#### View the app in the Google Cloud Console
+
+https://console.cloud.google.com/kubernetes/application
+
+### Check the status of the Aerospike cluster
+
+kubectl exec aerospike-test-aerospike-enterprise-0 --namespace test-ns -c aerospike -- asadm -e "asinfo -v 'cluster-stable:ignore-migrations=true;size=3;namespace=test'"
+
+
+### Connecting to the Aerospike cluster (External access)
+
+If `hostNetworking` option was enabled at the time of the deployment, the Aerospike pods can be accessed from outside the Kubernetes cluster network, given the appropriate firewall rules have been set up.
+
+`alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
+
+```shell
+asadm -h <K8sNodeIP> -p 3000 --services-alternate
+```
+
+### Scaling the Aerospike Application
+
+By default, the Aerospike app is deployed with 3 replicas. To change the number of replicas, use the following command:
+
+```shell
+kubectl scale statefulsets "aerospike-test-aerospike-enterprise" \
+  --namespace "test-ns" --replicas=5
+```
+
+### Backup and Restore
+
+#### Backing up Aerospike cluster data
+
+Estimate the size of the total backup data using `--estimate` flag with `asbackup`.
+
+```shell
+kubectl exec -it aerospike-test-aerospike-enterprise-0 -n test-ns -c aerospike -- asbackup --namespace test --estimate
+```
+
+where `aerospike-test-aerospike-enterprise-0` is any deployed pod and `test` is the Aerospike Namespace that is configured.
+
+Based on the above output, we need to provision a volume that is at least 20% larger. Set this value as `BACKUP_SIZE`.
+
+Set the following environment variables,
+
+export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike
 export AEROSPIKE_NAMESPACE=test
-export AEROSPIKE_REPL=2
-export AEROSPIKE_MEM=1
-export AEROSPIKE_TTL=0
-```
-All `AEROSPIKE_*` parameters except AEROSPIKE\_NODES are optional. Default values are listed above.
-
-All other parameters are required.
-
-The images above are referenced by [tag](https://docs.docker.com/engine/reference/commandline/tag).
-We recommend that you pin each image to an immutable [content digest](https://docs.docker.com/registry/spec/api/#content-digests).
-This ensures that the installed application always uses the same images, until you are ready to upgrade.
-To get the digest for the image, use the following script:
-
-```
-for i in "IMAGE_AEROSPIKE" "IMAGE_INIT" "IMAGE_UBBAGENT"; do
-  repo=$(echo ${!i} | cut -d: -f1);
-  digest=$(docker pull ${!i} | sed -n -e 's/Digest: //p');
-  export $i="$repo@$digest";
-  env | grep $i;
-done
-```
-**Deploy**
-
-Expand manifest template:
-```
-cat manifest/* | envsubst > expanded.yaml
-```
-
-Run kubectl:
-```
-kubectl apply -f expanded.yaml --namespace ${NAMESPACE}
-```
-
-# Access and Usage
-
-Aerospike is not designed to be publically accessible. Even if you switched the Kubernetes service definition to
-load balancer mode, clients will still be unable to connect.
-
-For clients in the same Kubernetes namespace, access Aerospike via its service name: `${APP_INSTANCE_NAME}-aerospike-svc`.
-
-Access control is enabled. The default user is `admin`. The default password is automatically generated. You can see the base64
-encoded password in the application details page. You'd need to decode this value before using it in your client configurations.
-
-eg: `echo $B64_PASSWORD | base64 -d`
-
-You can deploy the following to obtain a client shell in the same environment:
-
-```
-kubectl run -i -t myShell --image=python -- bash
-pip install aerospike
-python
->>> import aerospike
-...
-```
-
-
-# Backups
-
-Determine the size of your potential backup. Run an estimate by:
-
-`kubectl exec aerospike-1-aerospike-0 asbackup -U admin -P ${AEROSPIKE_PASS} -- --namespace test --estimate`
-
-Where `aerospike-1-aerospike-0` is any deployed pod and `test` is the Aerospike Namespace you've configured.
-
-Based on the above output, provision a volume that's at least 20% larger. Set this value as `BACKUP_SIZE`.
-You will need to have a host that's capable of providing that much storage.
-
-Set environment variables (modify if necessary)
-```
-export AEROSPIKE_SEED_NODE=aerospike-1-aerospike-0
-export AEROSPIKE_NAMESPACE=test
+export AEROSPIKE_SET=testset
 export BACKUP_SIZE=4Gi
-export ADMIN=admin
-export PASS=...
-```
 
-Expand the manifest:
-```
+Expand the `backup.yaml` manifest:
+
+```shell
 envsubst < backup.yaml  > expanded-backup.yaml
 ```
 
 Run kubectl:
-```
-kubectl deploy -f expanded-backup.yaml --namespace ${NAMESPACE}
+
+```shell
+kubectl apply -f expanded-backup.yaml --namespace test-ns
 ```
 
 This will result in a persistent volume by the name of "backup-claim". Its contents will be .asb backup files generated by the asbackup utility.
 
+#### Restoring the Aerospike cluster data
 
-# Restore
-
-Restore assumes you already have a backup volume created from the previous section. If not, simply copy your .asb backup files into a root 
-level directory on a volume, and provision said volume as `PersistentVolumeClaim`.
+Restore assumes you already have a backup volume created from the previous section. If not, simply copy your .asb backup files into a root level directory on a volume, and provision said volume as PersistentVolumeClaim.
 
 Set environment variables (modify if necessary)
-```
-export AEROSPIKE_SEED_NODE=aerospike-1-aerospike-0
+
+```shell
+export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike
 export AEROSPIKE_NAMESPACE=test
-export BACKUP_CLAIM=backup-claim
-export ADMIN=admin
-export PASS=...
+export AEROSPIKE_SET=testset
 ```
 
 Expand the manifest:
-```
-envsubst < restore.yaml  > expanded-restore.yaml
+
+```shell
+envsubst < restore.yaml > expanded-restore.yaml
 ```
 
 Run kubectl:
+
+```shell
+kubectl apply -f expanded-restore.yaml --namespace test-ns
 ```
-kubectl deploy -f expanded-restore.yaml --namespace ${NAMESPACE}
-```
+After running the above, the Aerospike cluster will contain the data held within the backup volume.
 
-After running the above, your cluster that the AEROSPIKE\_SEED\_NODE was part of will contain the data held within your backup volume.
 
-# Scaling
+### Updating the app
 
-Scaling can be done through the UI or with the following:
+To update the Aerospike image,
 
-```
-kubectl scale statefulset ${AEROSPIKE_INSTANCE_NAME}-aerospike --namespace ${NAMESPACE} --replicas [NEW_REPLICA_COUNT]
-``` 
+#### Update the statefulset definition to use the latest aerospike enterprise edition image
 
-Where `[NEW_REPLICA_COUNT]` is the new number of replicas.
-
-Standard pod lifecycle checks will ensure migrations are complete before removing pods. New pods will be added and will be available immediately.
-
-After scaling, you will need to reset your roster:
-
-```
-kubectl exec ${APP_INSTANCE_NAME}-aerospike-0 -it asadm
-
-asinfo -U admin -P ${AEROSPIKE_PASS} -v 'roster-set:namespace=${AEROSPIKE_NAMESPACE};nodes=[1,...$AEROSPIKE_NODES]'
-
-asinfo -U admin -P ${AEROSPIKE_PASS} -v 'recluster:'
-```
-
-# Upgrades/Updates
-
-As Aerospike is designed as a mission-critical database, upgrades are not applied automatically. This means template updates are not applied immediately,
-but rather requires manual pod deletion. Only once the pod has been deleted does the StatefulSet controller redeploy the pod with the new configurations.
-
-It is up to the end-user to ensure that migrations are complete, before continuing to other pods.
-
-Updates and upgrades that do not change cluster size do not need the roster to be reset.
-
-*To update the Aerospike image:*
-
-```
-export IMAGE_AEROSPIKE=launcher.gcr.io/aerospike-prod/aerospike-server-enterprise:latest
-```
-
-Update the StatefulSet definition with reference to the new image:
-
-```
-kubectl patch statefulset ${APP_INSTANCE_NAME}-aerospike \
-  --namespace ${NAMESPACE} \
-  --type='json' \
-  --patch="[{ \
+```shell
+kubectl patch statefulset aerospike-test-aerospike-enterprise  --namespace test-ns --type='json' --patch="[{ \
       \"op\": \"replace\", \
       \"path\": \"/spec/template/spec/containers/0/image\", \
-      \"value\":\"${IMAGE_AEROSPIKE}\" \
+      \"value\": \"gcr.io/aerospike-dev/aerospike-enterprise-byol:latest\" \
     }]"
 ```
 
-*To update Aerospike parameters:*
-
-Repeat the same process as creating the application.
-
-```
-export AEROSPIKE_NODES=5
-export AEROSPIKE_TTL=30
-...
-cat manifest/aerospike.template.yaml | envsubst > expanded.yaml
-kubectl apply -f expanded.yaml --namespace ${NAMESPACE}
-```
-
-A reminder, the old pods will still remain in service and the new configuration will be held in reserve and only be applied to new or replacement pods.
-
-# Deletion/Removal
+### Uninstall the Application
 
 Deletion of the application will remove all pods, service, and jobs. However your persisted data will still exist on the Persistent Volumes created.
 
-Remove the Aerospike application in the UI or with the following:
+#### Delete the resources
 
-```
-kubectl delete application ${APP_INSTANCE_NAME}
-```
-To clean up data, you will need to manually remove the persisted volumes. Either do this through the UI or with the following:
+Remove the Aerospike application and all associated resources using the `expanded.yaml` file:
 
+```shell
+kubectl delete -f expanded.yaml
 ```
-kubectl delete pvc -l app.kubernetes.io/name=${APP_INSTANCE_NAME} --namespace ${NAMESPACE}
+
+If you don't have the expanded manifest, delete the resources using types and a label:
+
+```shell
+kubectl delete application,statefulset,service \
+  --namespace test-ns \
+  --selector app.kubernetes.io/name=aerospike-test
+```
+
+#### Delete the GKE cluster
+
+```shell
+gcloud container clusters delete "$CLUSTER" --zone "$ZONE"
 ```

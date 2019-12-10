@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      name: benchmark
+    spec:
+      containers:
+      - command:
+        - '/bin/sh'
+        - '-c'
+        - "asbenchmark -w I -k 10000 -h $AEROSPIKE_SERVICE_NAME -n $AEROSPIKE_NAMESPACE -s $AEROSPIKE_SET"
+        image: aerospike/aerospike-tools:3.21.1
+        imagePullPolicy: Always
+        name: asbenchmark
+      restartPolicy: "OnFailure"

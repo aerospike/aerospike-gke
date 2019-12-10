@@ -1,9 +1,23 @@
+# PVC for persisting backed up data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: $BACKUP_SIZE
+---
+# Asbackup job definition 
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: aerospike-backup
 spec:
-  completions: 1
+  backoffLimit: 3
   template:
     metadata:
       name: aerospike-backup
@@ -12,10 +26,10 @@ spec:
       - command:
         - '/bin/sh'
         - '-c'
-        - "asbackup -U $ADMIN -P $PASS -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
+        - "asbackup -h $AEROSPIKE_SERVICE_NAME -n $AEROSPIKE_NAMESPACE -s $AEROSPIKE_SET -d /data/"
         image: aerospike/aerospike-tools:latest
-        imagePullPolicy: always
-        name: backup
+        imagePullPolicy: Always
+        name: asbackup
         volumeMounts:
         - mountPath: /data
           name: data-volume
@@ -23,16 +37,5 @@ spec:
         - name: data-volume
           persistentVolumeClaim:
             claimName: backup-claim
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: backup-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-#  volumeMode: Filesystem
-  resources:
-    requests:
-      storage: $BACKUP_SIZE
+      restartPolicy: "OnFailure"
 

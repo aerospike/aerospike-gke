@@ -3,7 +3,6 @@ kind: Job
 metadata:
   name: aerospike-restore
 spec:
-  completions: 1
   template:
     metadata:
       name: aerospike-restore
@@ -12,10 +11,10 @@ spec:
       - command:
         - '/bin/sh'
         - '-c'
-        - "asrestore -U $ADMIN -P $PASS -h $AEROSPIKE_SEED_HOST --no-config-file  --namespace $AEROSPIKE_NAMESPACE -d /data/"
+        - "asrestore -h $AEROSPIKE_SERVICE_NAME -n $AEROSPIKE_NAMESPACE -s $AEROSPIKE_SET -d /data/"
         image: aerospike/aerospike-tools:latest
-        imagePullPolicy: always
-        name: backup
+        imagePullPolicy: Always
+        name: asrestore
         volumeMounts:
         - mountPath: /data
           name: data-volume
@@ -23,4 +22,4 @@ spec:
       volumes:
         - name: data-volume
           persistentVolumeClaim:
-            claimName: $BACKUP_CLAIM
+            claimName: backup-claim
