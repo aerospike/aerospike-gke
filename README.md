@@ -108,11 +108,9 @@ Use `helm template` to expand the template. We recommend that you save the
 expanded manifest file for future updates to the application.
 
 ```shell
-helm template chart/aerospike-enterprise-4.7.0.tgz \
+helm template chart/aerospike-enterprise-4.8.0.tgz \
   --name=aerospike-test --namespace=test-ns \
-  --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
-  --set aerospikeServerImage="marketplace.gcr.io/aerospike-prod/aerospike-enterprise-gke-byol:4.7" \
-  --set aerospikeToolsImage="marketplace.gcr.io/aerospike-prod/aerospike-enterprise-gke-byol/aerospike-tools:4.7" > expanded.yaml
+  --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" > expanded.yaml
 ```
 
 #### Apply the manifest to your Kubernetes cluster
@@ -135,13 +133,29 @@ kubectl exec aerospike-test-aerospike-enterprise-0 --namespace test-ns -c aerosp
 
 ### Connecting to the Aerospike cluster (External access)
 
-If `hostNetworking` option was enabled at the time of the deployment, the Aerospike pods can be accessed from outside the Kubernetes cluster network, given the appropriate firewall rules have been set up.
+- If `hostNetworking` option is enabled at the time of the deployment, the Aerospike pods can be accessed from outside the Kubernetes cluster network.
 
-`alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
+  `alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
 
-```shell
-asadm -h <K8sNodeIP> -p 3000 --services-alternate
-```
+  ```shell
+  asadm -h <NodeIP> -p 3000 --services-alternate
+  ```
+
+- If `enableNodePortServices` option is used, a `NodePort` type service for each aerospike pod is created at the time of deployment. Applications can connect to the Aerospike cluster using any one of the `<NodeIP>:<NodePort>` as a seed IP and Port.
+
+  `alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
+
+  ```shell
+  asadm -h <NodeIP> -p <NodePort> --services-alternate
+  ```
+
+- If `enableLoadBalancerServices` option is used, a `LoadBalancer` type service for each aerospike pod at the time of deployment.
+
+  Applications can connect to the Aerospike cluster using `<LoadBalancerIngressIP>:<LoadBalancerPort>`.
+
+  ```sh
+  asadm -h <LoadBalancerIngressIP> -p <LoadBalancerPort> --services-alternate
+  ```
 
 ### Scaling the Aerospike Application
 
