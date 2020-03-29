@@ -38,7 +38,7 @@ environment by default.
 
 Configure `gcloud` as a Docker credential helper:
 
-```shell
+```sh
 gcloud auth configure-docker
 ```
 
@@ -46,7 +46,7 @@ gcloud auth configure-docker
 
 Create a new cluster from the command line:
 
-```shell
+```sh
 export CLUSTER=aerospike-cluster
 export ZONE=us-west1-a
 
@@ -55,7 +55,7 @@ gcloud container clusters create "$CLUSTER" --zone "$ZONE"
 
 Configure `kubectl` to connect to the new cluster:
 
-```shell
+```sh
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
 ```
 
@@ -67,7 +67,7 @@ An Application resource is a collection of individual Kubernetes components, suc
 
 To set up your cluster to understand Application resources, run the following command:
 
-```shell
+```sh
 kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
 ```
 
@@ -82,14 +82,14 @@ community. The source code can be found on
 #### Clone this repo
 
 Clone this repo and switch to `gke-byol` branch.
-```shell
+```sh
 git clone https://github.com/aerospike/aerospike-gke.git
 git checkout gke-byol
 ```
 
 Navigate to the `aerospike-gke` directory:
 
-```shell
+```sh
 cd aerospike-gke
 ```
 
@@ -98,7 +98,7 @@ cd aerospike-gke
 If you use a different namespace than the `default`, run the command below to
 create a new namespace:
 
-```shell
+```sh
 kubectl create namespace "$NAMESPACE"
 ```
 
@@ -107,7 +107,7 @@ kubectl create namespace "$NAMESPACE"
 Use `helm template` to expand the template. We recommend that you save the
 expanded manifest file for future updates to the application.
 
-```shell
+```sh
 helm template chart/aerospike-enterprise-4.8.0.tgz \
   --name=aerospike-test --namespace=test-ns \
   --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" > expanded.yaml
@@ -117,8 +117,35 @@ helm template chart/aerospike-enterprise-4.8.0.tgz \
 
 Use `kubectl` to apply the manifest to your Kubernetes cluster:
 
-```shell
+```sh
 kubectl apply -f expanded.yaml
+```
+
+#### Apply own `aerospike.conf` file
+
+```sh
+helm template chart/aerospike-enterprise-4.8.0.tgz \
+  --name=aerospike-test --namespace=test-ns \
+  --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>"
+  --set-file confFilePath="<PathToAerospikeConfFile>" > expanded.yaml
+```
+
+The custom aerospike.conf file or template must contain `# mesh-seed-placeholder` in `heartbeat` configuration to populate mesh configuration during peer discovery. For example,
+
+```
+  ....
+      heartbeat {
+
+          address any
+          mode mesh
+          port 3002
+
+          # mesh-seed-placeholder
+
+          interval 150
+          timeout 10
+      }
+  .....
 ```
 
 #### View the app in the Google Cloud Console
@@ -127,29 +154,49 @@ https://console.cloud.google.com/kubernetes/application
 
 ### Check the status of the Aerospike cluster
 
-```shell
+```sh
 kubectl exec aerospike-test-aerospike-enterprise-0 --namespace test-ns -c aerospike -- asadm -e "asinfo -v 'cluster-stable:ignore-migrations=true;size=3;namespace=test'"
 ```
 
 ### Connecting to the Aerospike cluster (External access)
 
 - If `hostNetworking` option is enabled at the time of the deployment, the Aerospike pods can be accessed from outside the Kubernetes cluster network.
+  ```sh
+  helm template chart/aerospike-enterprise-4.8.0.tgz \
+    --name=aerospike-test --namespace=test-ns \
+    --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
+    --set hostNetworking=true > expanded.yaml
+  ```
 
   `alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
 
-  ```shell
+  ```sh
   asadm -h <NodeIP> -p 3000 --services-alternate
   ```
 
 - If `enableNodePortServices` option is used, a `NodePort` type service for each aerospike pod is created at the time of deployment. Applications can connect to the Aerospike cluster using any one of the `<NodeIP>:<NodePort>` as a seed IP and Port.
+  ```sh
+  helm template chart/aerospike-enterprise-4.8.0.tgz \
+    --name=aerospike-test --namespace=test-ns \
+    --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
+    --set rbac.create=true \
+    --set enableNodePortServices=true > expanded.yaml
+  ```
 
   `alternate-access-address` will be configured to the instance's external IP (if available) automatically at the time of the deployment.
 
-  ```shell
+  ```sh
   asadm -h <NodeIP> -p <NodePort> --services-alternate
   ```
 
 - If `enableLoadBalancerServices` option is used, a `LoadBalancer` type service for each aerospike pod at the time of deployment.
+  ```sh
+  helm template chart/aerospike-enterprise-4.8.0.tgz \
+    --name=aerospike-test --namespace=test-ns \
+    --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
+    --set rbac.create=true \
+    --set enableLoadBalancerServices=true > expanded.yaml
+  ```
 
   Applications can connect to the Aerospike cluster using `<LoadBalancerIngressIP>:<LoadBalancerPort>`.
 
@@ -157,11 +204,29 @@ kubectl exec aerospike-test-aerospike-enterprise-0 --namespace test-ns -c aerosp
   asadm -h <LoadBalancerIngressIP> -p <LoadBalancerPort> --services-alternate
   ```
 
+### Aerospike Monitoring Stack
+
+Aerospike's GKE marketplace solution provides Aerospike Monitoring Stack which includes an Aerospike prometheus exporter (sidecar), Prometheus statefulset, Grafana statefulset and Alertmanager statefulset.
+
+Aerospike Monitoring can be enabled by setting `enableAerospikeMonitoring` option to `true`.
+
+```sh
+helm template chart/aerospike-enterprise-4.8.0.tgz \
+  --name=aerospike-test --namespace=test-ns \
+  --set featureKeyFile="<FeatureKeyFileInBase64EncodedForm>" \
+  --set rbac.create=true \
+  --set enableAerospikeMonitoring=true > expanded.yaml
+```
+
+Use `alertmanagerConfFile` to pass in an alertmanager configuration file as base64 encoded string.
+
+Use `aerospikeAlertRulesConfFile` to pass in an alert rules file as base64 encoded string.
+
 ### Scaling the Aerospike Application
 
 By default, the Aerospike app is deployed with 3 replicas. To change the number of replicas, use the following command:
 
-```shell
+```sh
 kubectl scale statefulsets "aerospike-test-aerospike-enterprise" \
   --namespace "test-ns" --replicas=5
 ```
@@ -172,7 +237,7 @@ kubectl scale statefulsets "aerospike-test-aerospike-enterprise" \
 
 Estimate the size of the total backup data using `--estimate` flag with `asbackup`.
 
-```shell
+```sh
 kubectl exec -it aerospike-test-aerospike-enterprise-0 -n test-ns -c aerospike -- asbackup --namespace test --estimate
 ```
 
@@ -182,8 +247,8 @@ Based on the above output, we need to provision a volume that is at least 20% la
 
 Set the following environment variables,
 
-```shell
-export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike
+```sh
+export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike-enterprise
 export AEROSPIKE_NAMESPACE=test
 export AEROSPIKE_SET=testset
 export BACKUP_SIZE=4Gi
@@ -191,13 +256,13 @@ export BACKUP_SIZE=4Gi
 
 Expand the `backup.yaml` manifest:
 
-```shell
+```sh
 envsubst < backup.yaml  > expanded-backup.yaml
 ```
 
 Run kubectl:
 
-```shell
+```sh
 kubectl apply -f expanded-backup.yaml --namespace test-ns
 ```
 
@@ -209,7 +274,7 @@ Restore assumes you already have a backup volume created from the previous secti
 
 Set environment variables (modify if necessary)
 
-```shell
+```sh
 export AEROSPIKE_SERVICE_NAME=aerospike-test-aerospike
 export AEROSPIKE_NAMESPACE=test
 export AEROSPIKE_SET=testset
@@ -217,13 +282,13 @@ export AEROSPIKE_SET=testset
 
 Expand the manifest:
 
-```shell
+```sh
 envsubst < restore.yaml > expanded-restore.yaml
 ```
 
 Run kubectl:
 
-```shell
+```sh
 kubectl apply -f expanded-restore.yaml --namespace test-ns
 ```
 After running the above, the Aerospike cluster will contain the data held within the backup volume.
@@ -235,7 +300,7 @@ To update the Aerospike image,
 
 #### Update the statefulset definition to use the latest aerospike enterprise edition image
 
-```shell
+```sh
 kubectl patch statefulset aerospike-test-aerospike-enterprise  --namespace test-ns --type='json' --patch="[{ \
       \"op\": \"replace\", \
       \"path\": \"/spec/template/spec/containers/0/image\", \
@@ -251,13 +316,13 @@ Deletion of the application will remove all pods, service, and jobs. However you
 
 Remove the Aerospike application and all associated resources using the `expanded.yaml` file:
 
-```shell
+```sh
 kubectl delete -f expanded.yaml
 ```
 
 If you don't have the expanded manifest, delete the resources using types and a label:
 
-```shell
+```sh
 kubectl delete application,statefulset,service \
   --namespace test-ns \
   --selector app.kubernetes.io/name=aerospike-test
@@ -265,6 +330,6 @@ kubectl delete application,statefulset,service \
 
 #### Delete the GKE cluster
 
-```shell
+```sh
 gcloud container clusters delete "$CLUSTER" --zone "$ZONE"
 ```
